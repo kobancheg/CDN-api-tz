@@ -1,59 +1,32 @@
-import {
-  Controller,
-  Get,
-  Post,
-  UseInterceptors,
-  UploadedFile,
-  UploadedFiles,
-  Res,
-  Param,
-} from '@nestjs/common';
-import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { editFileName } from './file/file.service';
+import { Controller, Get, Param, Post, Req, Res } from '@nestjs/common'
+import { AppService } from './app.service'
+
+import { FastifyRequest, FastifyReply } from 'fastify'
+import { File } from './models/file.entity'
+
+type Request = FastifyRequest
+type Response = FastifyReply
 
 @Controller()
 export class AppController {
-  @Post('upload')
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: diskStorage({
-        destination: './uploads',
-        filename: editFileName,
-      }),
-    }),
-  )
-  async uploadedFile(@UploadedFile() file) {
-    const response = {
-      originalname: file.originalname,
-      filename: file.filename,
-    };
-    return response;
-  }
+   constructor(private readonly appService: AppService) { }
 
-  @Post('upload/multiple')
-  @UseInterceptors(
-    FilesInterceptor('file', 20, {
-      storage: diskStorage({
-        destination: './uploads',
-        filename: editFileName,
-      }),
-    }),
-  )
-  async uploadMultipleFiles(@UploadedFiles() files) {
-    const response = [];
-    files.forEach((file) => {
-      const fileReponse = {
-        originalname: file.originalname,
-        filename: file.filename,
-      };
-      response.push(fileReponse);
-    });
-    return response;
-  }
+   @Post('upload')
+   uploadFile(@Req() request: Request): Promise<{ id: string }> {
+      return this.appService.upload(request)
+   }
 
-  @Get('download/:id')
-  seeUploadedFile(@Param('id') id, @Res() res) {
-    return res.sendFile(id, { root: './uploads' });
-  }
+   @Get('download')
+   getAllFiles(): Promise<File[]> {
+      return this.appService.getList()
+   }
+
+   @Get('download:id')
+   downloadFile(
+      @Param('id') id: string,
+      @Req() request: Request,
+      @Res() response: Response,
+   ) {
+      this.appService.download(id, request, response)
+   }
 }

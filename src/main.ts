@@ -1,15 +1,22 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { NestFactory } from '@nestjs/core'
+import {
+  FastifyAdapter,
+  NestFastifyApplication,
+} from '@nestjs/platform-fastify'
+import { AppModule } from './app.module'
+import fastifyMulipart from 'fastify-multipart'
 
-const start = async () => {
-  try {
-    const PORT = process.env.PORT || 3001;
-    const app = await NestFactory.create(AppModule);
-    app.enableCors();
-    await app.listen(PORT, () => console.log(`Server started on PORT ${PORT}`));
-  } catch (e) {
-    console.log(e);
-  }
-};
+async function bootstrap() {
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter(),
+  )
 
-start();
+  app.enableShutdownHooks()
+  app.register(fastifyMulipart)
+
+  await app.listen(3001, '0.0.0.0', () => {
+    console.log('Server listening at http://0.0.0.0:' + 3001)
+  })
+}
+bootstrap()
