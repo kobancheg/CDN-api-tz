@@ -9,7 +9,11 @@ import { FastifyReply, FastifyRequest } from 'fastify'
 import { GridFSBucket, ObjectId } from 'mongodb'
 import { Connection, Model, mongo } from 'mongoose'
 import { File } from './models/file.entity'
-import { Stream } from 'stream'
+import { createReadStream, createWriteStream } from 'fs';
+import { Stream, pipeline } from 'stream'
+import { scrypt, createCipheriv, createDecipheriv, randomBytes, randomFill } from 'crypto';
+import * as path from 'path'
+import * as uuid from 'uuid';
 
 type Request = FastifyRequest
 type Response = FastifyReply
@@ -25,28 +29,33 @@ export class AppService {
     this.bucket = new mongo.GridFSBucket(this.connection.db)
   }
 
-  async upload(request: Request): Promise<{ id: string }> {
+  async upload(key, request: Request): Promise<{ id: string }> {
     return new Promise((resolve, reject) => {
       try {
         request.multipart(
-          (field, file: Stream, filename, encoding, mimetype) => {
-            const id = new ObjectId()
-            console.log(id)
-            const uploadStream = this.bucket.openUploadStreamWithId(
-              id,
-              filename,
-              {
-                contentType: mimetype,
-              },
-            )
+          (fields, file: Stream, fieldname, encoding, mimetype) => {
+            console.log(fields);
+            console.log(fieldname);
+            console.log(encoding);
+            console.log(mimetype);
+
+
+            const idName = uuid.v4();
+            const filePath = path.resolve(__dirname, '..', 'uploads');
+            const algorithm = 'aes-256-ctr';
+            const iv = randomBytes(16);
+
+            const encrypt = createCipheriv(algorithm, key, iv);
+            const writeFile = createWriteStream(path.resolve(filePath, `${idName}.enc`));
+
+            file.pipe(encrypt)
+              .pipe(writeFile);
 
             file.on('end', () => {
               resolve({
-                id: uploadStream.id.toString(),
+                id: idName,
               })
             })
-
-            file.pipe(uploadStream)
           },
           (err) => {
             console.error(err)
@@ -86,9 +95,8 @@ export class AppService {
         response.headers({
           'Accept-Ranges': 'bytes',
           'Content-Type': fileInfo.contentType,
-          'Content-Range': `bytes ${start}-${end ? end : fileInfo.length - 1}/${
-            fileInfo.length
-          }`,
+          'Content-Range': `bytes ${start}-${end ? end : fileInfo.length - 1}/${fileInfo.length
+            }`,
           'Content-Length': (end ? end : fileInfo.length) - start,
           'Content-Disposition': `attachment; filename="${fileInfo.filename}"`,
         })

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Req, Res } from '@nestjs/common'
+import { Controller, Get, Param, Post, Req, Res, Query } from '@nestjs/common'
 import { AppService } from './app.service'
 
 import { FastifyRequest, FastifyReply } from 'fastify'
@@ -12,8 +12,10 @@ export class AppController {
    constructor(private readonly appService: AppService) { }
 
    @Post('upload')
-   uploadFile(@Req() request: Request): Promise<{ id: string }> {
-      return this.appService.upload(request)
+   uploadFile(
+      @Query('key') key: number,
+      @Req() request: Request): Promise<{ id: string }> {
+      return this.appService.upload(key, request)
    }
 
    @Get('download')
