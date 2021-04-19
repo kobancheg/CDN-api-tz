@@ -2,7 +2,7 @@ import { Controller, Get, Param, Post, Req, Res, Query } from '@nestjs/common'
 import { AppService } from './app.service'
 
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { File } from './models/file.entity'
+// import { File } from './models/file.entity'
 
 type Request = FastifyRequest
 type Response = FastifyReply
@@ -13,7 +13,7 @@ export class AppController {
 
    @Post('upload')
    uploadFile(
-      @Query('key') key: number,
+      @Query('key') key: string,
       @Req() request: Request): Promise<{ id: string }> {
       return this.appService.upload(key, request)
    }
@@ -25,10 +25,10 @@ export class AppController {
 
    @Get('download:id')
    downloadFile(
-      @Param('id') id: string,
-      @Req() request: Request,
+      @Query('key') key: string,
+      @Query('id') id: string,
       @Res() response: Response,
    ) {
-      return this.appService.download(id, request, response)
+      return this.appService.download(id, key, response)
    }
 }
