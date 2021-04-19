@@ -18,10 +18,10 @@ export class AppController {
       return this.appService.upload(key, request)
    }
 
-   @Get('download')
-   getAllFiles(): Promise<File[]> {
-      return this.appService.getList()
-   }
+   // @Get('download')
+   // getAllFiles(): Promise<File[]> {
+   //    return this.appService.getList()
+   // }
 
    @Get('download:id')
    downloadFile(
@@ -29,6 +29,6 @@ export class AppController {
       @Req() request: Request,
       @Res() response: Response,
    ) {
-      this.appService.download(id, request, response)
+      return this.appService.download(id, request, response)
    }
 }
