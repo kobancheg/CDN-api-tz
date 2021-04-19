@@ -12,7 +12,8 @@ import { File, FileModel } from './models/file.entity'
 import { createReadStream, createWriteStream } from 'fs';
 import { Stream } from 'stream'
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
-import * as path from 'path'
+import * as zlib from 'zlib';
+import * as path from 'path';
 import * as uuid from 'uuid';
 
 type Request = FastifyRequest
@@ -38,6 +39,7 @@ export class AppService {
             const filePath = path.resolve(__dirname, '..', 'uploads');
             const algorithm = 'aes-256-ctr';
             const iv = randomBytes(16);
+            const gzip = zlib.createGzip();
 
             const createdCat = new this.fileModel({
               buffer: iv,
@@ -47,9 +49,11 @@ export class AppService {
             await createdCat.save();
 
             const encrypt = createCipheriv(algorithm, key, iv);
-            const output = createWriteStream(path.resolve(filePath, `${idName}.enc`));
+            const output = createWriteStream(path.resolve(filePath, `${idName}.gz`));
 
-            file.pipe(encrypt).pipe(output);
+            file.pipe(encrypt)
+              .pipe(gzip)
+              .pipe(output);
 
             file.on('end', () => {
               resolve({
@@ -75,14 +79,17 @@ export class AppService {
         const algorithm = 'aes-256-ctr';
         const { idName, buffer } = await this.fileModel.findOne({ idName: id });
         const iv = buffer;
+        const unzip = zlib.createGunzip();
 
         const filePath = path.resolve(__dirname, '..', 'uploads');
         const decrypt = createDecipheriv(algorithm, key, iv);
-        const input = createReadStream(path.resolve(filePath, `${idName}.enc`));
+        const input = createReadStream(path.resolve(filePath, `${idName}.gz`));
         const output = createWriteStream('test.txt');
 
-        input.pipe(decrypt)
-          .pipe(output);
+        input.pipe(unzip)
+          .pipe(decrypt)
+          .pipe(output)
+
 
         input.on('end', () => {
           resolve({
