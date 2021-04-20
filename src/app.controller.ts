@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Req, Res, Query } from '@nestjs/common'
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { AppService } from './app.service'
+import { CryptoService } from './files/crypto.service'
+import { MetaInfoService } from './files/meta.service'
 
 import * as zlib from 'zlib';
 import * as pump from 'pump';
@@ -10,15 +11,20 @@ type Response = FastifyReply
 
 @Controller()
 export class AppController {
-   constructor(private readonly appService: AppService) { }
+   constructor(private readonly cryptoService: CryptoService,
+      private readonly metaInfoService: MetaInfoService,
+   ) { }
 
    @Post('upload')
    async uploadFile(
       @Query('key') key: string,
       @Req() request: Request): Promise<{ id: Object }> {
-      const data = await request.file()
 
-      return this.appService.upload(key, data)
+      const data = await request.file();
+      const [id, iv] = await this.cryptoService.upload(key, data);
+      await this.metaInfoService.writeMetaInfo(id, data, iv, key);
+
+      return { id: id }
    }
 
    @Get('download:id')
@@ -28,7 +34,8 @@ export class AppController {
       @Res() response: Response) {
 
       const gzip = zlib.createGunzip();
-      const [decrypt, file, metaInfo] = await this.appService.download(id, key);
+      const metaInfo = await this.metaInfoService.readMetaInfo(id);
+      const [decrypt, file] = await this.cryptoService.download(key, metaInfo);
 
       response.raw.writeHead(200, {
          'Content-Type': metaInfo.type,
