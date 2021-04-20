@@ -1,108 +1,62 @@
-import {
-  Injectable,
-  NotFoundException,
-  ServiceUnavailableException,
-  BadRequestException,
-} from '@nestjs/common'
-import { InjectConnection, InjectModel } from '@nestjs/mongoose'
-import { FastifyReply, FastifyRequest } from 'fastify'
-import { GridFSBucket, ObjectId } from 'mongodb'
-import { Connection, Model, mongo } from 'mongoose'
-import { File, FileModel } from './models/file.entity'
+import { Injectable } from '@nestjs/common'
+import { InjectModel } from '@nestjs/mongoose'
+import { Multipart } from 'fastify-multipart'
+import { Model } from 'mongoose'
+import { File } from './models/file.entity'
 import { createReadStream, createWriteStream } from 'fs';
-import { Stream } from 'stream'
-import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
-import * as zlib from 'zlib';
-import * as path from 'path';
-import * as uuid from 'uuid';
 
-type Request = FastifyRequest
-type Response = FastifyReply
+import * as crypto from 'crypto';
+import * as uuid from 'uuid';
+import * as zlib from 'zlib';
+import * as pump from 'pump';
+import * as path from 'path';
 
 @Injectable()
 export class AppService {
-  private readonly bucket: GridFSBucket
 
   constructor(
-    @InjectModel('fs.files') private fileModel: Model<File>,
-    @InjectConnection() private connection: Connection
-  ) {
-    // this.bucket = new mongo.GridFSBucket(this.connection.db)
+    @InjectModel('metainfo') private fileModel: Model<File>) { }
+
+  async upload(key: string, data: Multipart): Promise<{ id: string }> {
+    try {
+      const id = uuid.v4()
+      const iv = crypto.randomBytes(16)
+      const encrypt = crypto.createCipheriv('aes-256-ctr', key, iv)
+      const gzip = zlib.createGzip()
+
+      const filePath = path.resolve(__dirname, '..', 'store');
+      const file = createWriteStream(path.resolve(filePath, `${id}.gz`));
+      await pump(data.file, encrypt, gzip, file)
+
+      const metaInfo = new this.fileModel({
+        iv: iv,
+        name: data.filename,
+        type: data.mimetype,
+        idName: id,
+        keyCrypt: key
+      });
+      await metaInfo.save();
+
+      return { id: id };
+    } catch (err) {
+      console.error(err)
+    }
   }
 
-  async upload(key, request: Request): Promise<{ id: string }> {
-    return new Promise((resolve, reject) => {
-      try {
-        request.multipart(
-          async (fields, file: Stream, fieldname, encoding, mimetype) => {
-            const idName = uuid.v4();
-            const filePath = path.resolve(__dirname, '..', 'uploads');
-            const algorithm = 'aes-256-ctr';
-            const iv = randomBytes(16);
-            const gzip = zlib.createGzip();
+  async download(id: string, key: string): Promise<any[]> {
+    try {
+      const metaInfo = await this.fileModel.findOne({ idName: id });
+      const iv = metaInfo.iv;
 
-            const createdCat = new this.fileModel({
-              buffer: iv,
-              idName: idName,
-              keyCrypt: key
-            });
-            await createdCat.save();
+      const filePath = path.resolve(__dirname, '..', 'store');
+      const decrypt = crypto.createDecipheriv('aes-256-ctr', key, iv);
+      const file = createReadStream(path.resolve(filePath, `${metaInfo.idName}.gz`));
+      const resault = [decrypt, file, metaInfo]
 
-            const encrypt = createCipheriv(algorithm, key, iv);
-            const output = createWriteStream(path.resolve(filePath, `${idName}.gz`));
+      return resault;
 
-            file.pipe(encrypt)
-              .pipe(gzip)
-              .pipe(output);
-
-            file.on('end', () => {
-              resolve({
-                id: idName,
-              })
-            })
-          },
-          (err) => {
-            console.error(err)
-            reject(new ServiceUnavailableException())
-          },
-        )
-      } catch (e) {
-        console.error(e)
-        reject(new ServiceUnavailableException())
-      }
-    })
-  }
-
-  async download(id: string, key: string, response: Response) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const algorithm = 'aes-256-ctr';
-        const { idName, buffer } = await this.fileModel.findOne({ idName: id });
-        const iv = buffer;
-        const unzip = zlib.createGunzip();
-
-        const filePath = path.resolve(__dirname, '..', 'uploads');
-        const decrypt = createDecipheriv(algorithm, key, iv);
-        const input = createReadStream(path.resolve(filePath, `${idName}.gz`));
-        const output = createWriteStream('test.txt');
-
-        input.pipe(unzip)
-          .pipe(decrypt)
-          .pipe(output)
-
-
-        input.on('end', () => {
-          resolve({
-            id: 'test',
-          })
-        })
-      } catch (err) {
-        console.log(err);
-      }
-    })
-  }
-
-  getList() {
-    return this.fileModel.find().exec()
+    } catch (err) {
+      console.log(err);
+    }
   }
 }

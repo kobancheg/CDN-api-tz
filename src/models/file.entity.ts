@@ -1,13 +1,17 @@
 import { Schema, SchemaTypes, Document } from 'mongoose'
 
 export const FileModel = new Schema({
-   buffer: SchemaTypes.Buffer,
+   iv: SchemaTypes.Buffer,
+   name: SchemaTypes.String,
+   type: SchemaTypes.String,
    idName: SchemaTypes.String,
    keyCrypt: SchemaTypes.String
 })
 
 export interface File extends Document {
-   buffer: Buffer,
+   iv: Buffer,
+   name: string,
+   type: string,
    idName: string,
    keyCrypt: string
 }

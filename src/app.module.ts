@@ -13,7 +13,7 @@ import { FileModel } from './models/file.entity'
         useNewUrlParser: true,
       },
     ),
-    MongooseModule.forFeature([{ name: 'fs.files', schema: FileModel }]),
+    MongooseModule.forFeature([{ name: 'metainfo', schema: FileModel }]),
   ],
   controllers: [AppController],
   providers: [AppService],

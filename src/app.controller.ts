@@ -1,8 +1,9 @@
-import { Controller, Get, Param, Post, Req, Res, Query } from '@nestjs/common'
+import { Controller, Get, Post, Req, Res, Query } from '@nestjs/common'
+import { FastifyRequest, FastifyReply } from 'fastify'
 import { AppService } from './app.service'
 
-import { FastifyRequest, FastifyReply } from 'fastify'
-// import { File } from './models/file.entity'
+import * as zlib from 'zlib';
+import * as pump from 'pump';
 
 type Request = FastifyRequest
 type Response = FastifyReply
@@ -12,23 +13,28 @@ export class AppController {
    constructor(private readonly appService: AppService) { }
 
    @Post('upload')
-   uploadFile(
+   async uploadFile(
       @Query('key') key: string,
-      @Req() request: Request): Promise<{ id: string }> {
-      return this.appService.upload(key, request)
+      @Req() request: Request): Promise<{ id: Object }> {
+      const data = await request.file()
+
+      return this.appService.upload(key, data)
    }
 
-   // @Get('download')
-   // getAllFiles(): Promise<File[]> {
-   //    return this.appService.getList()
-   // }
-
    @Get('download:id')
-   downloadFile(
+   async downloadFile(
       @Query('key') key: string,
       @Query('id') id: string,
-      @Res() response: Response,
-   ) {
-      return this.appService.download(id, key, response)
+      @Res() response: Response) {
+
+      const gzip = zlib.createGunzip();
+      const [decrypt, file, metaInfo] = await this.appService.download(id, key);
+
+      response.raw.writeHead(200, {
+         'Content-Type': metaInfo.type,
+         'Content-Disposition': 'attachment; filename=' + metaInfo.name
+      })
+
+      return await pump(file, gzip, decrypt, response.raw)
    }
 }
