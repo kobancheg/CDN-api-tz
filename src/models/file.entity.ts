@@ -6,8 +6,11 @@ export const FileModel = new Schema({
    type: SchemaTypes.String,
    idName: SchemaTypes.String,
    keyCrypt: SchemaTypes.Buffer
+}, {
+   timestamps: true
 })
 
+FileModel.index({ idName: 1 }, { name: 'idNameSearchIndex' })
 export interface File extends Document {
    iv: Buffer,
    name: string,

@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Req, Res, Query, Delete, Param } from '@nestjs/common'
+import {
+   Controller,
+   Get,
+   Post,
+   Req,
+   Res,
+   Query,
+   Delete,
+   HttpException,
+   HttpStatus
+} from '@nestjs/common'
+
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { CryptoService } from './files/crypto.service'
 import { MetaInfoService } from './files/meta.service'
@@ -20,7 +31,7 @@ export class AppController {
       @Query('pass') pass: string,
       @Req() request: Request): Promise<any> {
 
-      if (!pass) return new Error('Data not transferred');
+      if (!pass) return new HttpException('Bad Request', HttpStatus.BAD_REQUEST);
       const data = await request.file();
 
       const [id, iv, key] = await this.cryptoService.upload(pass, data);
@@ -38,7 +49,7 @@ export class AppController {
       const unzip = zlib.createGunzip();
       const metaInfo = await this.metaInfoService.readMetaInfo(id);
 
-      if (!metaInfo) return response.code(404).send('Not found');
+      if (!metaInfo) return new HttpException('Not found', HttpStatus.NOT_FOUND);
       const [decrypt, file] = await this.cryptoService.download(pass, metaInfo);
 
       response.raw.writeHead(200, {
@@ -56,7 +67,9 @@ export class AppController {
       const resault = await this.metaInfoService.removeMetaInfo(id);
       const { deletedCount } = resault;
 
-      if (!deletedCount) return new Error('Not found');
+      if (!id) return new HttpException('Bad Request', HttpStatus.BAD_REQUEST);
+      if (!deletedCount) return new HttpException('Not found', HttpStatus.NOT_FOUND);
+
       await this.cryptoService.delete(id);
 
       return resault;

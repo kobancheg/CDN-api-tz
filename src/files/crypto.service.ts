@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common'
 import { Multipart } from 'fastify-multipart'
 import { ConfigService } from '../config/config.service'
 import { File } from '../models/file.entity'
@@ -34,7 +34,7 @@ export class CryptoService {
          return [id, iv, key];
 
       } catch (err) {
-         console.error(err)
+         throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
       }
    }
 
@@ -49,7 +49,7 @@ export class CryptoService {
          return [decrypt, file];
 
       } catch (err) {
-         console.log(err);
+         throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
       }
    }
 
@@ -57,11 +57,10 @@ export class CryptoService {
       try {
          fs.unlink(path.resolve(this.storePath, `${id}.gz`), (err) => {
             if (err) throw err;
-
-            console.log(`${id} was deleted`);
          });
+         
       } catch (err) {
-         console.log(err);
+         throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
       }
    }
 }

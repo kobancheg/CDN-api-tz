@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Multipart } from 'fastify-multipart'
 import { Model } from 'mongoose'
@@ -20,7 +20,7 @@ export class MetaInfoService {
          });
          await metaInfo.save();
       } catch (err) {
-         console.log(err);
+         throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
       }
    }
 
@@ -30,7 +30,7 @@ export class MetaInfoService {
 
          return metaInfo;
       } catch (err) {
-         console.log(err);
+         throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
       }
    }
 
@@ -40,7 +40,7 @@ export class MetaInfoService {
 
          return resault;
       } catch (err) {
-         console.log(err);
+         throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
       }
    }
 }

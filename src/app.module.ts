@@ -13,6 +13,7 @@ import { FileModel } from './models/file.entity'
          {
             useUnifiedTopology: true,
             useNewUrlParser: true,
+            useCreateIndex: true
          },
       ),
       MongooseModule.forFeature([{ name: 'metainfo', schema: FileModel }]),
