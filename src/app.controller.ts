@@ -18,9 +18,11 @@ export class AppController {
    @Post('upload')
    async uploadFile(
       @Query('pass') pass: string,
-      @Req() request: Request): Promise<{ id: Object }> {
+      @Req() request: Request): Promise<any> {
 
+      if (!pass) return new Error('Data not transferred');
       const data = await request.file();
+
       const [id, iv, key] = await this.cryptoService.upload(pass, data);
       await this.metaInfoService.writeMetaInfo(id, data, iv, key);
 
@@ -35,6 +37,8 @@ export class AppController {
 
       const unzip = zlib.createGunzip();
       const metaInfo = await this.metaInfoService.readMetaInfo(id);
+
+      if (!metaInfo) return response.code(404).send('Not found');
       const [decrypt, file] = await this.cryptoService.download(pass, metaInfo);
 
       response.raw.writeHead(200, {
@@ -49,8 +53,11 @@ export class AppController {
    async removeFile(
       @Query('id') id: string) {
 
-      await this.cryptoService.delete(id);
       const resault = await this.metaInfoService.removeMetaInfo(id);
+      const { deletedCount } = resault;
+
+      if (!deletedCount) return new Error('Not found');
+      await this.cryptoService.delete(id);
 
       return resault;
    }
