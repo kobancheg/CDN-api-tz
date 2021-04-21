@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common'
 import { Multipart } from 'fastify-multipart'
-import { ConfigService } from '../config/config.service';
+import { ConfigService } from '../config/config.service'
 import { File } from '../models/file.entity'
-import { createReadStream, createWriteStream, ReadStream } from 'fs';
 
+import * as fs from 'fs';
 import * as crypto from 'crypto';
 import * as uuid from 'uuid';
 import * as zlib from 'zlib';
@@ -27,7 +27,7 @@ export class CryptoService {
          const encrypt = crypto.createCipheriv('aes-256-ctr', key, iv);
          const gzip = zlib.createGzip();
 
-         const file = createWriteStream(path.resolve(this.storePath, `${id}.gz`));
+         const file = fs.createWriteStream(path.resolve(this.storePath, `${id}.gz`));
          await pump(data.file, encrypt, gzip, file);
 
          return [id, iv];
@@ -38,14 +38,26 @@ export class CryptoService {
    }
 
    async download(key: string, metaInfo: File)
-      : Promise<[decrypt: crypto.Decipher, file: ReadStream]> {
+      : Promise<[decrypt: crypto.Decipher, file: fs.ReadStream]> {
       try {
          const iv = metaInfo.iv;
          const decrypt = crypto.createDecipheriv('aes-256-ctr', key, iv);
-         const file = createReadStream(path.resolve(this.storePath, `${metaInfo.idName}.gz`));
+         const file = fs.createReadStream(path.resolve(this.storePath, `${metaInfo.idName}.gz`));
 
          return [decrypt, file];
 
+      } catch (err) {
+         console.log(err);
+      }
+   }
+
+   async delete(id: string): Promise<any> {
+      try {
+         fs.unlink(path.resolve(this.storePath, `${id}.gz`), (err) => {
+            if (err) throw err;
+
+            console.log(`${id} was deleted`);
+         });
       } catch (err) {
          console.log(err);
       }

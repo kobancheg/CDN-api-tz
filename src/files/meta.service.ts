@@ -33,4 +33,14 @@ export class MetaInfoService {
          console.log(err);
       }
    }
+
+   async removeMetaInfo(id: string): Promise<any> {
+      try {
+         const resault = await this.fileModel.deleteOne({ idName: id });
+
+         return resault;
+      } catch (err) {
+         console.log(err);
+      }
+   }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Req, Res, Query } from '@nestjs/common'
+import { Controller, Get, Post, Req, Res, Query, Delete, Param } from '@nestjs/common'
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { CryptoService } from './files/crypto.service'
 import { MetaInfoService } from './files/meta.service'
@@ -43,5 +43,15 @@ export class AppController {
       })
 
       return await pump(file, gzip, decrypt, response.raw)
+   }
+
+   @Delete('delete:id')
+   async removeFile(
+      @Query('id') id: string) {
+
+      await this.cryptoService.delete(id);
+      const resault = await this.metaInfoService.removeMetaInfo(id);
+
+      return resault;
    }
 }
