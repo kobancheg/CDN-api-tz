@@ -49,7 +49,7 @@ export class AppController {
       const unzip = zlib.createGunzip();
       const metaInfo = await this.metaInfoService.readMetaInfo(id);
 
-      if (!metaInfo) return new HttpException('Not found', HttpStatus.NOT_FOUND);
+      if (!metaInfo) return response.code(404).send('Not found');
       const [decrypt, file] = await this.cryptoService.download(pass, metaInfo);
 
       response.raw.writeHead(200, {
