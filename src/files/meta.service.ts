@@ -9,7 +9,7 @@ export class MetaInfoService {
    constructor(
       @InjectModel('metainfo') private fileModel: Model<File>) { }
 
-   async writeMetaInfo(id: string, data: Multipart, iv: Buffer, key: string) {
+   async writeMetaInfo(id: string, data: Multipart, iv: Buffer, key: Buffer) {
       try {
          const metaInfo = new this.fileModel({
             iv: iv,

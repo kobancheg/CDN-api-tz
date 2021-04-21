@@ -18,29 +18,31 @@ export class CryptoService {
       this.storePath = configService.get();
    }
 
-   async upload(key: string, data: Multipart)
-      : Promise<[id: string, iv: Buffer]> {
+   async upload(pass: string, data: Multipart)
+      : Promise<[id: string, iv: Buffer, key: Buffer]> {
 
       try {
          const id = uuid.v4();
          const iv = crypto.randomBytes(16);
+         const key = crypto.createHash('sha256').update(pass).digest();
          const encrypt = crypto.createCipheriv('aes-256-ctr', key, iv);
          const gzip = zlib.createGzip();
 
          const file = fs.createWriteStream(path.resolve(this.storePath, `${id}.gz`));
          await pump(data.file, encrypt, gzip, file);
 
-         return [id, iv];
+         return [id, iv, key];
 
       } catch (err) {
          console.error(err)
       }
    }
 
-   async download(key: string, metaInfo: File)
+   async download(pass: string, metaInfo: File)
       : Promise<[decrypt: crypto.Decipher, file: fs.ReadStream]> {
       try {
          const iv = metaInfo.iv;
+         const key = crypto.createHash('sha256').update(pass).digest();
          const decrypt = crypto.createDecipheriv('aes-256-ctr', key, iv);
          const file = fs.createReadStream(path.resolve(this.storePath, `${metaInfo.idName}.gz`));
 

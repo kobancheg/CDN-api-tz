@@ -17,32 +17,32 @@ export class AppController {
 
    @Post('upload')
    async uploadFile(
-      @Query('key') key: string,
+      @Query('pass') pass: string,
       @Req() request: Request): Promise<{ id: Object }> {
 
       const data = await request.file();
-      const [id, iv] = await this.cryptoService.upload(key, data);
+      const [id, iv, key] = await this.cryptoService.upload(pass, data);
       await this.metaInfoService.writeMetaInfo(id, data, iv, key);
 
       return { id: id }
    }
 
-   @Get('download:id')
+   @Get('download:id:pass')
    async downloadFile(
-      @Query('key') key: string,
+      @Query('pass') pass: string,
       @Query('id') id: string,
       @Res() response: Response) {
 
-      const gzip = zlib.createGunzip();
+      const unzip = zlib.createGunzip();
       const metaInfo = await this.metaInfoService.readMetaInfo(id);
-      const [decrypt, file] = await this.cryptoService.download(key, metaInfo);
+      const [decrypt, file] = await this.cryptoService.download(pass, metaInfo);
 
       response.raw.writeHead(200, {
          'Content-Type': metaInfo.type,
          'Content-Disposition': 'attachment; filename=' + metaInfo.name
       })
 
-      return await pump(file, gzip, decrypt, response.raw)
+      return await pump(file, unzip, decrypt, response.raw)
    }
 
    @Delete('delete:id')

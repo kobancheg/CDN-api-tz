@@ -5,7 +5,7 @@ export const FileModel = new Schema({
    name: SchemaTypes.String,
    type: SchemaTypes.String,
    idName: SchemaTypes.String,
-   keyCrypt: SchemaTypes.String
+   keyCrypt: SchemaTypes.Buffer
 })
 
 export interface File extends Document {
@@ -13,5 +13,5 @@ export interface File extends Document {
    name: string,
    type: string,
    idName: string,
-   keyCrypt: string
+   keyCrypt: Buffer
 }
