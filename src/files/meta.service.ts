@@ -2,7 +2,7 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Multipart } from 'fastify-multipart'
 import { Model } from 'mongoose'
-import { File } from '../models/file.entity'
+import { File } from '../models/file.model'
 
 @Injectable()
 export class MetaInfoService {

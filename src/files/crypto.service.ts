@@ -1,8 +1,3 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common'
-import { Multipart } from 'fastify-multipart'
-import { ConfigService } from '../config/config.service'
-import { File } from '../models/file.entity'
-
 import * as fs from 'fs';
 import * as crypto from 'crypto';
 import * as uuid from 'uuid';
@@ -10,12 +5,17 @@ import * as zlib from 'zlib';
 import * as pump from 'pump';
 import * as path from 'path';
 
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common'
+import { Multipart } from 'fastify-multipart'
+import configuration from '../config/configuration';
+import { File } from '../models/file.model'
+
 @Injectable()
 export class CryptoService {
    private storePath: string;
 
-   constructor(configService: ConfigService) {
-      this.storePath = configService.get();
+   constructor() {
+      this.storePath = configuration().storePath;
    }
 
    async upload(pass: string, data: Multipart)
@@ -58,7 +58,7 @@ export class CryptoService {
          fs.unlink(path.resolve(this.storePath, `${id}.gz`), (err) => {
             if (err) throw err;
          });
-         
+
       } catch (err) {
          throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
       }

@@ -1,22 +1,25 @@
 import { NestFactory } from '@nestjs/core'
 import {
-  FastifyAdapter,
-  NestFastifyApplication,
+   FastifyAdapter,
+   NestFastifyApplication,
 } from '@nestjs/platform-fastify'
 import { AppModule } from './app.module'
 import fastifyMulipart from 'fastify-multipart'
+import configuration from './config/configuration'
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
-    new FastifyAdapter(),
-  )
+   const { port, host } = configuration();
 
-  app.enableShutdownHooks()
-  app.register(fastifyMulipart)
+   const app = await NestFactory.create<NestFastifyApplication>(
+      AppModule,
+      new FastifyAdapter(),
+   )
 
-  await app.listen(3001, '0.0.0.0', () => {
-    console.log('Server listening at http://0.0.0.0:' + 3001)
-  })
+   app.enableShutdownHooks()
+   app.register(fastifyMulipart)
+
+   await app.listen(port, host, () => {
+      console.log(`Server listening at ${host}:${port}`)
+   })
 }
 bootstrap()

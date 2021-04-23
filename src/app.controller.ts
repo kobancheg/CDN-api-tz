@@ -1,3 +1,5 @@
+import * as zlib from 'zlib';
+import * as pump from 'pump';
 import {
    Controller,
    Get,
@@ -13,9 +15,6 @@ import {
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { CryptoService } from './files/crypto.service'
 import { MetaInfoService } from './files/meta.service'
-
-import * as zlib from 'zlib';
-import * as pump from 'pump';
 
 type Request = FastifyRequest
 type Response = FastifyReply
